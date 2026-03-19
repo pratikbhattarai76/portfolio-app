@@ -16,6 +16,9 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
+LABEL org.opencontainers.image.source="https://github.com/pratikbhattarai76/portfolio-app-deployment"
+
+
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
