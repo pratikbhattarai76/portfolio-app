@@ -321,6 +321,7 @@ body {
 .navbar-link-active:focus-visible {
   color: #020617;
   background: linear-gradient(135deg, #22d3ee, #67e8f9);
+  transform: none;
 }
 
 .site-grid-layer {
@@ -1744,6 +1745,13 @@ html.theme-switching *::after {
 .navbar-link-active:hover,
 .navbar-link-active:focus-visible {
   color: rgb(var(--color-ink-rgb));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-rgb)),
+    rgb(var(--color-accent-highlight-rgb))
+  );
+  box-shadow: 0 10px 28px rgb(var(--color-accent-rgb) / 0.22);
+  transform: none;
 }
 
 .theme-toggle {

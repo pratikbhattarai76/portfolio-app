@@ -233,7 +233,6 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 			const progressBar = document.getElementById('site-progress-bar');
 			const navLinks = Array.from(document.querySelectorAll('[data-nav-link]'));
 			const revealElements = Array.from(document.querySelectorAll('.reveal-section'));
-			const supportsIntersectionObserver = typeof window.IntersectionObserver === 'function';
 			const getNavbarOffset = () => (navbar instanceof HTMLElement ? navbar.offsetHeight + 24 : 88);
 			const getRevealStart = () => {
 				const compactViewport =
@@ -366,37 +365,12 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 					return;
 				}
 
-				if (!supportsIntersectionObserver) {
-					setActiveLinkFromViewport();
-				}
+				setActiveLinkFromViewport();
 			};
 
 			syncRevealVisibility();
 
 			if (sectionTargets.length > 0) {
-				if (supportsIntersectionObserver) {
-					const activeSectionObserver = new IntersectionObserver(
-						(entries) => {
-							const visibleEntries = entries
-								.filter((entry) => entry.isIntersecting)
-								.sort((entryA, entryB) => entryB.intersectionRatio - entryA.intersectionRatio);
-
-							if (visibleEntries.length === 0) {
-								return;
-							}
-
-							const [currentEntry] = visibleEntries;
-							setActiveLink(currentEntry.target.id);
-						},
-						{
-							rootMargin: '-38% 0px -48% 0px',
-							threshold: [0.2, 0.35, 0.5, 0.7],
-						}
-					);
-
-					sectionTargets.forEach(({ section }) => activeSectionObserver.observe(section));
-				}
-
 				syncActiveLinkFromScroll();
 			}
 
