@@ -231,15 +231,39 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 
 			const navbar = document.getElementById('navbar');
 			const progressBar = document.getElementById('site-progress-bar');
+			const navToggle = document.querySelector('[data-nav-toggle]');
+			const navPanel = document.querySelector('[data-nav-panel]');
 			const navLinks = Array.from(document.querySelectorAll('[data-nav-link]'));
 			const revealElements = Array.from(document.querySelectorAll('.reveal-section'));
+			const compactViewportQuery = window.matchMedia?.(
+				'(max-width: 900px), (hover: none) and (pointer: coarse)'
+			);
+			let mobileNavOpen = false;
+			let revealObserver;
 			const getNavbarOffset = () => (navbar instanceof HTMLElement ? navbar.offsetHeight + 24 : 88);
 			const getRevealStart = () => {
-				const compactViewport =
-					window.matchMedia?.('(max-width: 900px), (hover: none) and (pointer: coarse)').matches ??
-					false;
+				const compactViewport = compactViewportQuery?.matches ?? false;
 
 				return window.innerHeight * (compactViewport ? 0.96 : 0.9);
+			};
+			const setMobileNavOpen = (open) => {
+				if (
+					!(navbar instanceof HTMLElement) ||
+					!(navToggle instanceof HTMLButtonElement) ||
+					!(navPanel instanceof HTMLElement)
+				) {
+					return;
+				}
+
+				mobileNavOpen = open;
+				navbar.classList.toggle('site-navbar-menu-open', open);
+				document.body.classList.toggle('site-body-nav-open', open);
+				navToggle.setAttribute('aria-expanded', String(open));
+				navToggle.setAttribute(
+					'aria-label',
+					open ? 'Close navigation menu' : 'Open navigation menu'
+				);
+				navPanel.setAttribute('aria-hidden', String(!open));
 			};
 
 			const syncRevealVisibility = () => {
@@ -262,6 +286,45 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 					if (isNearViewport) {
 						element.classList.add('reveal-visible');
 					}
+				});
+			};
+			const observeRevealVisibility = () => {
+				if (reducedMotion || revealElements.length === 0) {
+					syncRevealVisibility();
+					return;
+				}
+
+				if (typeof IntersectionObserver !== 'function') {
+					syncRevealVisibility();
+					return;
+				}
+
+				revealObserver?.disconnect();
+
+				const compactViewport = compactViewportQuery?.matches ?? false;
+				revealObserver = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (!entry.isIntersecting || !(entry.target instanceof HTMLElement)) {
+								return;
+							}
+
+							entry.target.classList.add('reveal-visible');
+							revealObserver?.unobserve(entry.target);
+						});
+					},
+					{
+						rootMargin: compactViewport ? '0px 0px -6% 0px' : '0px 0px -12% 0px',
+						threshold: compactViewport ? 0.14 : 0.18,
+					}
+				);
+
+				revealElements.forEach((element) => {
+					if (element.classList.contains('reveal-visible')) {
+						return;
+					}
+
+					revealObserver?.observe(element);
 				});
 			};
 
@@ -287,6 +350,10 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 						top,
 						behavior: reducedMotion ? 'auto' : 'smooth',
 					});
+
+					if (mobileNavOpen) {
+						setMobileNavOpen(false);
+					}
 				});
 			});
 
@@ -368,7 +435,30 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 				setActiveLinkFromViewport();
 			};
 
-			syncRevealVisibility();
+			if (navToggle instanceof HTMLButtonElement && navPanel instanceof HTMLElement) {
+				navToggle.addEventListener('click', () => {
+					setMobileNavOpen(!mobileNavOpen);
+				});
+
+				document.addEventListener('keydown', (event) => {
+					if (event.key === 'Escape' && mobileNavOpen) {
+						setMobileNavOpen(false);
+						navToggle.focus();
+					}
+				});
+
+				document.addEventListener('click', (event) => {
+					if (!mobileNavOpen || !(event.target instanceof Node)) {
+						return;
+					}
+
+					if (navbar instanceof HTMLElement && !navbar.contains(event.target)) {
+						setMobileNavOpen(false);
+					}
+				});
+			}
+
+			observeRevealVisibility();
 
 			if (sectionTargets.length > 0) {
 				syncActiveLinkFromScroll();
@@ -378,7 +468,6 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 				updateProgress();
 				updateNavbarState();
 				syncActiveLinkFromScroll();
-				syncRevealVisibility();
 			};
 			let shellFrame = 0;
 			const requestShellSync = () => {
@@ -394,7 +483,14 @@ const pageTitle = `${siteConfig.name} | ${siteConfig.title}`;
 
 			syncShell();
 			window.addEventListener('scroll', requestShellSync, { passive: true });
-			window.addEventListener('resize', requestShellSync);
+			window.addEventListener('resize', () => {
+				if (!(compactViewportQuery?.matches ?? false) && mobileNavOpen) {
+					setMobileNavOpen(false);
+				}
+
+				observeRevealVisibility();
+				requestShellSync();
+			});
 		</script>
 	</body>
 </html>
